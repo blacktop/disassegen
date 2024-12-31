@@ -1,0 +1,23 @@
+[project]
+name = "disassegen"
+description = "Generate arbitrary language AARCH64 disassemblers from ARMARM spec"
+readme = "README.md"
+version = "0.1.0"
+authors = ["blacktop <blacktop@users.noreply.github.com>"]
+maintainers = ["blacktop <blacktop@users.noreply.github.com>"]
+
+[project.urls]
+"Homepage" = "https://github.com/blacktop/disassegen"
+
+[project.scripts]
+disassegen = "disassegen.__main__:main"
+
+[project.optional-dependencies]
+dev = ["datamodel-code-generator"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
