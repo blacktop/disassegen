@@ -31,7 +31,6 @@ class MC:
                 result |= int(hex_number, 16) << (i * 8)
             return result
         except Exception as e:
-            print(e)
             raise e
 
     def disassemble(self, int) -> str:
@@ -54,7 +53,6 @@ class MC:
             else:
                 return ""
         except Exception as e:
-            print(e)
             raise e
 
 
@@ -70,8 +68,7 @@ def cli():
 @click.argument("instructions", type=str)
 def assemble(instructions: str):
     """Assemble ARM64 instructions"""
-    mc = MC()
-    print(hex(mc.assemble(instructions)))
+    print(hex(MC().assemble(instructions)))
 
 
 @cli.command()
@@ -82,8 +79,7 @@ def disassemble(uint32: str):
         uint32 = int(uint32, 16)
     else:
         uint32 = int(uint32)
-    mc = MC()
-    print(mc.disassemble(uint32))
+    print(MC().disassemble(uint32))
 
 
 if __name__ == "__main__":
