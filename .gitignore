@@ -170,5 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# setuptools_scm generated
+disassegen/_version.py
+
 # ARM spec
 aarchmrs/2024-12/
