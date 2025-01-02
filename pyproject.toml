@@ -1,8 +1,8 @@
 [project]
 name = "disassegen"
 description = "Generate arbitrary language AARCH64 disassemblers from ARMARM spec"
-readme = {file = "README.txt", content-type = "text/markdown"}
-license = {file = "LICENSE.md"}
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
 requires-python = ">=3.13"
 authors = [ { name = "blacktop", email = "blacktop@users.noreply.github.com" } ]
 maintainers = [ { name = "blacktop", email = "blacktop@users.noreply.github.com" } ]
