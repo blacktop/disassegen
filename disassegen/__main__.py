@@ -7,14 +7,13 @@ from .spec import ArmSpec
 
 @click.command()
 @click.argument("input_file", type=click.Path(exists=True))
-@click.option("--output", "-o", type=click.Path(), help="Optional output file path")
+@click.option("--output", "-o", type=click.Path(), help="Optional path to save the generated disassembler source code")
 def main(input_file: str, output: Optional[str]) -> None:
     """
     Generate a disassembler from the input JSON ARM64 spec.
 
     Args:
         input_file: Path to the input JSON file
-        output: Optional path to save the generated disassembler source code
     """
     try:
         # Parse the input using the spec
