@@ -56,7 +56,7 @@ class Encodeset:
 
         for value in self.values:
             if value["_type"] == "Instruction.Encodeset.Field":
-                line = f"- Field: {value['name']}"
+                line = f"- \033[1m\033[94m{value['name']}\033[0m"
                 if value["range"]["start"] != 0 or value["range"]["width"] != 32:
                     line += f" range={value['range']['start']+value['range']['width']-1}:{value['range']['start']}"
                 if value["value"]["value"]:
@@ -70,7 +70,7 @@ class Encodeset:
                 output.append(line)
 
             elif value["_type"] == "Instruction.Encodeset.Bits":
-                line = f"- BITS:"
+                line = f"- \033[1;32mBITS:\033[0m"
                 if value["range"]["start"] != 0 or value["range"]["width"] != 32:
                     line += f" range={value['range']['start']+value['range']['width']-1}:{value['range']['start']}"
                 if value["value"]["value"]:
@@ -521,13 +521,21 @@ class ArmSpec(object):
             def add_instruction_details(item, indent=1):
                 indent_str = "  " * indent
                 if hasattr(item, "name"):
-                    output.append(f"{indent_str}- {item.name}")
+                    asm = ""
                     if hasattr(item, "assembly"):
                         asm = ""
                         for symbol in item.assembly["symbols"]:
                             if symbol["_type"] == "Instruction.Symbols.Literal":
                                 asm += symbol["value"]
-                        output.append(f"{indent_str}  - {asm}")
+                            elif symbol["_type"] == "Instruction.Symbols.RuleReference":
+                                if self.instructions.assembly_rules.get(symbol["rule_id"]):
+                                    if hasattr(self.instructions.assembly_rules[symbol["rule_id"]], "default"):
+                                        asm += self.instructions.assembly_rules[symbol["rule_id"]].default
+                                    elif hasattr(self.instructions.assembly_rules[symbol["rule_id"]], "display") and self.instructions.assembly_rules[symbol["rule_id"]].display is not None:
+                                        asm += self.instructions.assembly_rules[symbol["rule_id"]].display                                    
+                                    else:
+                                        asm += f"({symbol['rule_id']})" 
+                    output.append(f"{indent_str}- \033[1;35m{item.name}\033[0m \033[1;36m{asm}\033[0m")
                     output.append(f"{item.encoding}")
 
                 if hasattr(item, "children"):
