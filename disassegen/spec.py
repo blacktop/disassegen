@@ -41,6 +41,87 @@ class Encodeset:
     width: int = 32
     values: List[Union[EncodingField, EncodingBits]] = field(default_factory=list)
 
+    def __str__(self) -> str:
+        """
+        Provide a human-readable string representation of the Encodeset.
+
+        Returns:
+            str: A formatted string with key information about the encoding
+        """
+        output = []
+
+        # Basic encoding information
+        if self.width != 32:
+            output.append(f"Encoding Width: {self.width} bits")
+
+        for value in self.values:
+            if value["_type"] == "Instruction.Encodeset.Field":
+                line = f"- Field: {value['name']}"
+                if value["range"]["start"] != 0 or value["range"]["width"] != 32:
+                    line += f" range={value['range']['start']+value['range']['width']-1}:{value['range']['start']}"
+                if value["value"]["value"]:
+                    line += f" value={value['value']['value']}"
+                    if value["value"]["meaning"]:
+                        line += f" (meaning={value['value']['meaning']})"
+                if value["should_be_mask"]["value"] and "1" in value["should_be_mask"]["value"]:
+                    line += f" should_be_mask={value['should_be_mask']['value']}"
+                    if value["should_be_mask"]["meaning"]:
+                        line += f" (meaning={value['should_be_mask']['meaning']})"
+                output.append(line)
+
+            elif value["_type"] == "Instruction.Encodeset.Bits":
+                line = f"- BITS:"
+                if value["range"]["start"] != 0 or value["range"]["width"] != 32:
+                    line += f" range={value['range']['start']+value['range']['width']-1}:{value['range']['start']}"
+                if value["value"]["value"]:
+                    line += f" value={value['value']['value']}"
+                    if value["value"]["meaning"]:
+                        line += f" (meaning={value['value']['meaning']})"
+                if value["should_be_mask"]["value"] and "1" in value["should_be_mask"]["value"]:
+                    line += f" should_be_mask={value['should_be_mask']['value']}"
+                    if value["should_be_mask"]["meaning"]:
+                        line += f"(meaning={value['should_be_mask']['meaning']})"
+                output.append(line)
+
+        return "\n".join(output)
+
+    def __repr__(self) -> str:
+        """
+        Provide a detailed representation of the Encodeset object.
+
+        Returns:
+            str: A string representation suitable for debugging
+        """
+        return f"Encodeset(width={self.width}, " f"value_count={len(self.values)})"
+
+
+# AST Schemas
+@dataclass
+class ASTIdentifier:
+    _type: str = "AST.Identifier"
+    value: str = ""
+
+
+@dataclass
+class ASTDotAtom:
+    _type: str = "AST.DotAtom"
+    values: List[Union[ASTIdentifier, Dict[str, Any]]] = field(default_factory=list)
+
+
+@dataclass
+class ASTBinaryOp:
+    _type: str = "AST.BinaryOp"
+    left: Union[ASTIdentifier, ASTDotAtom, Dict[str, Any]] = field(default_factory=dict)
+    op: str = ""
+    right: Union[ASTIdentifier, Dict[str, Any]] = field(default_factory=dict)
+
+
+@dataclass
+class ASTAssignment:
+    _type: str = "AST.Assignment"
+    var: Union[ASTIdentifier, ASTDotAtom, Dict[str, Any]] = field(default_factory=dict)
+    val: Union[ASTIdentifier, ASTDotAtom, Dict[str, Any]] = field(default_factory=dict)
+
 
 @dataclass
 class ASTFunction:
@@ -56,10 +137,29 @@ class ASTBool:
 
 
 @dataclass
+class ASTInteger:
+    _type: str = "AST.Integer"
+    value: int = 0
+
+
+@dataclass
+class ASTSet:
+    _type: str = "AST.Set"
+    values: List[Union[ASTIdentifier, ASTInteger, Dict[str, Any]]] = field(default_factory=list)
+
+
+@dataclass
+class ASTStatementBlock:
+    _type: str = "AST.StatementBlock"
+    statements: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
 class Instruction:
     _type: str = "Instruction.Instruction"
     name: str = ""
     encoding: Encodeset = field(default_factory=Encodeset)
+    condition: Optional[Union[ASTFunction, ASTBool]] = None
     operation_id: Optional[str] = None
     assembly: Optional[Dict[str, Any]] = None
     assemble: Optional[Dict[str, Any]] = None
@@ -87,12 +187,6 @@ class InstructionSet:
     condition: Optional[Union[ASTFunction, ASTBool]] = None
     operation_id: Optional[str] = None
     children: List[Union[InstructionGroup, Instruction]] = field(default_factory=list)
-
-
-@dataclass
-class ASTStatementBlock:
-    _type: str = "AST.StatementBlock"
-    statements: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -189,6 +283,31 @@ class Instructions:
     assembly_rules: Union[str, AssemblyRuleChoice, AssemblyRuleRule, AssemblyRuleToken] = field(default_factory=dict)
     instructions: List[InstructionSet] = field(default_factory=list)
     operations: Dict[str, Union[Operation, OperationAlias]] = field(default_factory=dict)
+
+
+@dataclass
+class InstructionAlias:
+    _type: str = "Instruction.InstructionAlias"
+    name: str = ""
+    operation_id: str = ""
+    assembly: Optional[Assembly] = field(default_factory=Assembly)
+    preferred: Optional[Union[ASTFunction, ASTBool]] = field(default_factory=lambda: ASTBool(value=False))
+    condition: Optional[Union[ASTFunction, ASTBool]] = None
+
+
+@dataclass
+class InstructionInstance:
+    _type: str = "Instruction.InstructionInstance"
+    name: str = ""
+    properties: Optional[Dict[str, Any]] = field(default_factory=dict)
+    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    children: Optional[List["InstructionInstance"]] = field(default_factory=list)
+
+
+# Traits Schemas
+@dataclass
+class HasCondition:
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, Dict[str, Any]]] = None
 
 
 class ArmSpec(object):
@@ -403,6 +522,13 @@ class ArmSpec(object):
                 indent_str = "  " * indent
                 if hasattr(item, "name"):
                     output.append(f"{indent_str}- {item.name}")
+                    if hasattr(item, "assembly"):
+                        asm = ""
+                        for symbol in item.assembly["symbols"]:
+                            if symbol["_type"] == "Instruction.Symbols.Literal":
+                                asm += symbol["value"]
+                        output.append(f"{indent_str}  - {asm}")
+                    output.append(f"{item.encoding}")
 
                 if hasattr(item, "children"):
                     for child in item.children:
