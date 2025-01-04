@@ -161,11 +161,25 @@ class ASTStatementBlock:
 
 
 @dataclass
+class ASTUnaryOp:
+    _type: str = "AST.UnaryOp"
+    op: str = ""
+    expr: Union[ASTBool, ASTInteger, ASTBinaryOp, ASTIdentifier, Dict[str, Any]] = field(default_factory=dict)
+
+
+# Traits Schemas
+@dataclass
+class HasCondition:
+    _type: str = "Traits.HasCondition"
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
+
+
+@dataclass
 class Instruction:
     _type: str = "Instruction.Instruction"
     name: str = ""
     encoding: Encodeset = field(default_factory=Encodeset)
-    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
     operation_id: Optional[str] = None
     assembly: Optional[Dict[str, Any]] = None
     assemble: Optional[Dict[str, Any]] = None
@@ -179,7 +193,7 @@ class InstructionGroup:
     name: str = ""
     title: Optional[str] = None
     encoding: Encodeset = field(default_factory=Encodeset)
-    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
     children: List[Union["InstructionGroup", Instruction]] = field(default_factory=list)
     operation_id: Optional[str] = None
 
@@ -190,7 +204,7 @@ class InstructionSet:
     name: str = ""
     read_width: int = 32
     encoding: Encodeset = field(default_factory=Encodeset)
-    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
     operation_id: Optional[str] = None
     children: List[Union[InstructionGroup, Instruction]] = field(default_factory=list)
 
@@ -229,7 +243,7 @@ class AssemblyRuleRule:
     symbols: Optional[Union[Assembly, None]] = None
     display: Optional[str] = None
     description: Optional[Dict[str, Any]] = None
-    condition: Optional[Dict[str, Any]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
 
 
 @dataclass
@@ -298,7 +312,7 @@ class InstructionAlias:
     operation_id: str = ""
     assembly: Optional[Assembly] = field(default_factory=Assembly)
     preferred: Optional[Union[ASTFunction, ASTBool]] = field(default_factory=lambda: ASTBool(value=False))
-    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
 
 
 @dataclass
@@ -306,14 +320,8 @@ class InstructionInstance:
     _type: str = "Instruction.InstructionInstance"
     name: str = ""
     properties: Optional[Dict[str, Any]] = field(default_factory=dict)
-    condition: Optional[Union[ASTFunction, ASTBool]] = None
+    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]] = None
     children: Optional[List["InstructionInstance"]] = field(default_factory=list)
-
-
-# Traits Schemas
-@dataclass
-class HasCondition:
-    condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, Dict[str, Any]]] = None
 
 
 class ArmSpec(object):
@@ -413,6 +421,10 @@ class ArmSpec(object):
                 condition = ASTFunction(**condition_data)
             elif condition_data.get("_type") == "AST.Bool":
                 condition = ASTBool(**condition_data)
+            elif condition_data.get("_type") == "AST.BinaryOp":
+                condition = ASTBinaryOp(**condition_data)
+            elif condition_data.get("_type") == "AST.UnaryOp":
+                condition = ASTUnaryOp(**condition_data)
 
         return InstructionSet(
             name=data.get("name", ""),
@@ -452,6 +464,8 @@ class ArmSpec(object):
                 condition = ASTFunction(**condition_data)
             elif condition_data.get("_type") == "AST.Bool":
                 condition = ASTBool(**condition_data)
+            elif condition_data.get("_type") == "AST.BinaryOp":
+                condition = ASTBinaryOp(**condition_data)
 
         return InstructionGroup(
             name=data.get("name", ""),
@@ -475,11 +489,28 @@ class ArmSpec(object):
         # Parse encoding
         encoding = Encodeset(**data.get("encoding", {}))
 
+        # Parse condition
+        condition = None
+        if "condition" in data:
+            condition_data = data["condition"]
+            if condition_data.get("_type") == "AST.Function":
+                condition = ASTFunction(**condition_data)
+            elif condition_data.get("_type") == "AST.Bool":
+                condition = ASTBool(**condition_data)
+            elif condition_data.get("_type") == "AST.BinaryOp":
+                condition = ASTBinaryOp(**condition_data)
+            elif condition_data.get("_type") == "AST.UnaryOp":
+                condition = ASTUnaryOp(**condition_data)
+            else:
+                condition = condition_data
+                print("🙀🙀🙀🙀🙀🙀🙀🙀🙀🙀🙀🙀")
+
         return Instruction(
             name=data.get("name", ""),
             encoding=encoding,
             operation_id=data.get("operation_id"),
             assembly=data.get("assembly"),
+            condition=condition,
             assemble=data.get("assemble"),
             disassemble=data.get("disassemble"),
             assertions=data.get("assertions"),
@@ -499,6 +530,79 @@ class ArmSpec(object):
         # Write to file
         with Path(file_path).open("w") as f:
             json.dump(data, f, indent=2)
+
+    def format_condition(
+        self, condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]]) -> str:
+        """
+        Create a human-readable representation of an Instruction's condition.
+
+        Args:
+            condition (Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]]):
+                The condition to format
+
+        Returns:
+            str: A formatted, human-readable string representation of the condition
+        """
+        # Early return if no condition
+        if condition is None:
+            return ""
+
+        # Normalize condition if it's a dictionary
+        if isinstance(condition, dict):
+            type_map = {
+                "AST.Identifier": ASTIdentifier,    
+                "AST.DotAtom": ASTDotAtom,
+                "AST.Function": ASTFunction,
+                "AST.Bool": ASTBool,
+                "AST.BinaryOp": ASTBinaryOp,
+                "AST.UnaryOp": ASTUnaryOp,
+                "Values.Value": ValuesValue,
+            }
+            condition_type = condition.get("_type")
+            if condition_type in type_map:
+                condition = type_map[condition_type](**condition)
+
+        # Handle different condition types
+        if isinstance(condition, ASTBool):
+            return f"{condition.value}"
+        
+        elif isinstance(condition, ValuesValue):
+            return f"{condition.value}"
+
+        elif isinstance(condition, ASTIdentifier):
+            return f"{condition.value}"
+
+        elif isinstance(condition, ASTDotAtom):
+            return f"{condition.value}" 
+
+        elif isinstance(condition, ASTFunction):
+            # Format function arguments as strings
+            args_str = ", ".join(
+                [str(arg.get("value", arg)) if isinstance(arg, dict) else str(arg) for arg in condition.arguments]
+            )
+            return f"{condition.name}({args_str})"
+
+        elif isinstance(condition, ASTBinaryOp):
+            # Format left and right sides as strings
+            left = (
+                str(condition.left.value)
+                if hasattr(condition.left, "value")
+                else self.format_condition(condition.left)
+            )
+            right = (
+                str(condition.right.value)
+                if hasattr(condition.right, "value")
+                else self.format_condition(condition.right)
+            )
+            return f"{left} {condition.op} {right}"
+
+        elif isinstance(condition, ASTUnaryOp):
+            # Format expression as string
+            expr = str(condition.expr.value) if hasattr(condition.expr, "value") else str(condition.expr)
+            return f"{condition.op}{expr}"
+
+        # Fallback for unexpected types
+        return f"{str(condition)}"
 
     def __str__(self) -> str:
         """
@@ -545,6 +649,9 @@ class ArmSpec(object):
                                     else:
                                         asm += f"({symbol['rule_id']})"
                     output.append(f"{indent_str}- \033[1;35m{item.name}\033[0m \033[1;36m{asm}\033[0m")
+                    condition_str = self.format_condition(item.condition)
+                    if len(condition_str) > 0 and condition_str != "True":
+                        output.append(f"{indent_str}    \033[1;33mcondition\033[0m: {condition_str}")
                     output.append(f"{item.encoding.__str__(indent+1)}")
 
                 if hasattr(item, "children"):
