@@ -4,12 +4,12 @@ ISA_URL = "https://developer.arm.com/-/cdn-downloads/permalink/Exploration-Tools
 .PHONY: aarchmrs
 aarchmrs:
 	mkdir -p data/aarchmrs
-	curl -sL $(SPEC_URL) | tar -xz -C data/aarchmrs
+	curl -sL $(MRS_URL) | tar -xz -C data/aarchmrs
 
 .PHONY: isa_a64
 isa_a64:
 	mkdir -p data/isa_a64
-	curl -sL $(XML_URL) | tar -xz -C data/isa_a64
+	curl -sL $(ISA_URL) | tar -xz -C data/isa_a64
 
 .PHONY: data
 data: aarchmrs isa_a64
