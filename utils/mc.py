@@ -14,7 +14,7 @@ class MC:
     def assemble(self, str) -> int:
         try:
             process = subprocess.Popen(
-                ["/opt/homebrew/Cellar/llvm/19.1.6/bin/llvm-mc", "-arch=arm64", "-mattr=v9.5a", "-show-encoding"],
+                ["/opt/homebrew/opt/llvm/bin/llvm-mc", "-arch=arm64", "-mattr=v9.5a", "-show-encoding"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -36,7 +36,7 @@ class MC:
     def disassemble(self, int) -> str:
         try:
             process = subprocess.Popen(
-                ["/opt/homebrew/Cellar/llvm/19.1.6/bin/llvm-mc", "-arch=arm64", "-mattr=v9.5a", "-disassemble"],
+                ["/opt/homebrew/opt/llvm/bin/llvm-mc", "-arch=arm64", "-mattr=v9.5a", "-disassemble"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -59,7 +59,7 @@ class MC:
 @click.group()
 def cli():
     """LLVM Machine Code Playground"""
-    if not os.path.exists("/opt/homebrew/Cellar/llvm/19.1.6/bin/llvm-mc"):
+    if not os.path.exists("/opt/homebrew/opt/llvm/bin/llvm-mc"):
         print("'llvm-mc' tool not found. Please run `brew install llvm` to install it.")
         sys.exit()
 
