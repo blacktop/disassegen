@@ -34,11 +34,11 @@ Run
 make run
 ```
 
-## SPEC 📖
+## Spec 📖
 
 - <https://developer.arm.com/Architectures/A-Profile%20Architecture#Downloads>
 
-## NOTES 📓
+## Notes 📓
 
 - <https://github.com/alastairreid/asl-interpreter>
 
