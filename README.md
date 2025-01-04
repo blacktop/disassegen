@@ -10,7 +10,7 @@ The 'move' is probably to create C code from the spec and let other languages cr
 
 My dream is to convert the spec into an AST that I could then convert into any language's source code, but I might start with some simple templating to get something that works out the door as a MVP.
 
-## Current Progress 📋
+## Current Progress 📈
 
 Just trying to understand the MRS BSD format and see if it's usable in it's current state or if we still need the XML.
 
@@ -34,14 +34,14 @@ Run
 make run
 ```
 
-## SPEC
+## SPEC 📖
 
 - <https://developer.arm.com/Architectures/A-Profile%20Architecture#Downloads>
 
-## NOTES
+## NOTES 📓
 
 - <https://github.com/alastairreid/asl-interpreter>
 
-## License
+## License 
 
 MIT Copyright (c) 2025 blacktop
