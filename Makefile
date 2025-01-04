@@ -19,7 +19,7 @@ data: aarchmrs isa_a64
 	. .venv/bin/activate && pip install .
 
 run: .venv
-	. .venv/bin/activate && python3 -m disassegen data/aarchmrs/Instructions.json
+	. .venv/bin/activate && python3 -m disassegen data/aarchmrs/Instructions.json | less -Sr
 
 .PHONY: clean
 clean:
