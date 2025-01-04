@@ -556,6 +556,7 @@ class ArmSpec(object):
                 "AST.Bool": ASTBool,
                 "AST.BinaryOp": ASTBinaryOp,
                 "AST.UnaryOp": ASTUnaryOp,
+                "AST.Set": ASTSet,
                 "Values.Value": ValuesValue,
             }
             condition_type = condition.get("_type")
@@ -565,7 +566,7 @@ class ArmSpec(object):
         # Handle different condition types
         if isinstance(condition, ASTBool):
             return f"{condition.value}"
-        
+
         elif isinstance(condition, ValuesValue):
             return f"{condition.value}"
 
@@ -574,6 +575,13 @@ class ArmSpec(object):
 
         elif isinstance(condition, ASTDotAtom):
             return f"{condition.value}" 
+
+        elif isinstance(condition, ASTSet):
+            if len(condition.values) == 1:  
+                return f"{condition.values[0]['value']}"
+            else:
+                values_str = ", ".join([str(value['value']) for value in condition.values])
+                return f"[{values_str}]"
 
         elif isinstance(condition, ASTFunction):
             # Format function arguments as strings
@@ -598,7 +606,9 @@ class ArmSpec(object):
 
         elif isinstance(condition, ASTUnaryOp):
             # Format expression as string
-            expr = str(condition.expr.value) if hasattr(condition.expr, "value") else str(condition.expr)
+            expr = (
+                str(condition.expr.value) if hasattr(condition.expr, "value") else self.format_condition(condition.expr)
+            )
             return f"{condition.op}{expr}"
 
         # Fallback for unexpected types

@@ -173,5 +173,6 @@ cython_debug/
 # setuptools_scm generated
 disassegen/_version.py
 
-# ARM spec
-aarchmrs/2024-12/
+# ARM spec data
+data/isa_a64/
+data/aarchmrs/
