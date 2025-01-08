@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 
 @dataclass
@@ -154,13 +155,70 @@ class Instruction:
     explanations: List[Explanation]
     docvars: Dict[str, str]
 
+    def __str__(self) -> str:
+        """
+        Create a string representation of the Instruction.
 
-class ARMInstructionParser:
+        Returns:
+            str: A formatted string representation of the instruction
+        """
+        output = []
+
+        output.append(f"Instruction: {self.id}")
+        output.append(f"Title: {self.title}")
+        output.append(f"Brief Description: {self.brief_description}")
+
+        output.append("\nDocvars:")
+        for key, value in self.docvars.items():
+            output.append(f"  {key}: {value}")
+
+        output.append("\nInstruction Classes:")
+        for iclass in self.instruction_classes:
+            output.append(f"\n- Class: {iclass.name} ({iclass.id})")
+            output.append(f"  Number of encodings: {iclass.no_encodings}")
+
+            output.append(f"  Architecture Variants:")
+            for variant in iclass.architecture_variants:
+                output.append(f"    * {variant.name} ({variant.feature})")
+
+            output.append("  Encodings:")
+            for encoding in iclass.encodings:
+                output.append(f"\n    * {encoding.mnemonic}: {encoding.assembly_template}")
+                if encoding.reg_diagram:
+                    output.append("\n" + "\n".join(f"      {line}" for line in str(encoding.reg_diagram).split("\n")))
+                    output.append("\n      Bit fields details:")
+                    for box in encoding.reg_diagram.boxes:
+                        if box.name:
+                            output.append(f"        - {box.name} [bit {box.high_bit}, width {box.width}]")
+                            if box.constants:
+                                output.append(f"          Constants: {', '.join(box.constants)}")
+
+            output.append("\n  Pseudocode:")
+            for ps in iclass.pseudocode:
+                output.append(f"    Section: {ps.section_type}")
+                output.append("    Code:")
+                for line in ps.code.split("\n"):
+                    output.append(f"      {line}")
+
+        output.append("\nExplanations:")
+        for exp in self.explanations:
+            output.append(f"  {exp.symbol}:")
+            output.append(f"    Description: {exp.description}")
+            if exp.encoded_in:
+                output.append(f"    Encoded in: {exp.encoded_in}")
+
+        return "\n".join(output)
+
+
+class ISASpec:
     """Parser for ARM instruction XML format."""
 
-    def __init__(self, xml_content: str):
-        """Initialize parser with XML content."""
+    def __init__(self, file_path: Union[str, Path]):
+        """Initialize parser with XML file."""
+        self.file_path = file_path
+        xml_content = open(self.file_path, "r").read()
         self.root = ET.fromstring(xml_content)
+        self.instruction = self.parse()
 
     def parse_box(self, box_elem: ET.Element) -> Box:
         """Parse a bit field box element."""
@@ -328,64 +386,6 @@ class ARMInstructionParser:
             detailed.append(para.text.strip())
 
         return brief_text, "\n".join(detailed)
-
-
-def parse_arm_instruction(xml_content: str) -> Instruction:
-    """Convenience function to parse ARM instruction XML."""
-    parser = ARMInstructionParser(xml_content)
-    return parser.parse()
-
-
-# Example usage:
-if __name__ == "__main__":
-    with open(
-        # "data/isa_a64/ISA_A64_xml_A_profile-2024-12/pacia.xml",
-        "data/isa_a64/ISA_A64_xml_A_profile-2024-12/tcommit.xml",
-        "r",
-    ) as f:
-        xml_content = f.read()
-    instruction = parse_arm_instruction(xml_content)
-
-    print(f"Instruction: {instruction.id}")
-    print(f"Title: {instruction.title}")
-    print(f"Brief Description: {instruction.brief_description}")
-
-    print("\nDocvars:")
-    for key, value in instruction.docvars.items():
-        print(f"  {key}: {value}")
-
-    print("\nInstruction Classes:")
-    for iclass in instruction.instruction_classes:
-        print(f"\n- Class: {iclass.name} ({iclass.id})")
-        print(f"  Number of encodings: {iclass.no_encodings}")
-
-        print(f"  Architecture Variants:")
-        for variant in iclass.architecture_variants:
-            print(f"    * {variant.name} ({variant.feature})")
-
-        print("  Encodings:")
-        for encoding in iclass.encodings:
-            print(f"\n    * {encoding.mnemonic}: {encoding.assembly_template}")
-            if encoding.reg_diagram:
-                print("\n" + "\n".join(f"      {line}" for line in str(encoding.reg_diagram).split("\n")))
-                print("\n      Bit fields details:")
-                for box in encoding.reg_diagram.boxes:
-                    if box.name:
-                        print(f"        - {box.name} [bit {box.high_bit}, width {box.width}]")
-                        if box.constants:
-                            print(f"          Constants: {', '.join(box.constants)}")
-
-        print("\n  Pseudocode:")
-        for ps in iclass.pseudocode:
-            print(f"    Section: {ps.section_type}")
-            print("    Code:")
-            for line in ps.code.split("\n"):
-                print(f"      {line}")
-            print()
-
-    print("\nExplanations:")
-    for exp in instruction.explanations:
-        print(f"  {exp.symbol}:")
-        print(f"    Description: {exp.description}")
-        if exp.encoded_in:
-            print(f"    Encoded in: {exp.encoded_in}")
+    
+    def __str__(self) -> str:
+        return str(self.instruction)

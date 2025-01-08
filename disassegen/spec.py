@@ -324,7 +324,7 @@ class InstructionInstance:
     children: Optional[List["InstructionInstance"]] = field(default_factory=list)
 
 
-class ArmSpec(object):
+class MRSSpec(object):
 
     def __init__(self, file_path: Union[str, Path]):
         self.file_path = file_path
@@ -532,7 +532,8 @@ class ArmSpec(object):
             json.dump(data, f, indent=2)
 
     def format_condition(
-        self, condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]]) -> str:
+        self, condition: Optional[Union[ASTFunction, ASTBool, ASTBinaryOp, ASTUnaryOp, Dict[str, Any]]]
+    ) -> str:
         """
         Create a human-readable representation of an Instruction's condition.
 
@@ -550,7 +551,7 @@ class ArmSpec(object):
         # Normalize condition if it's a dictionary
         if isinstance(condition, dict):
             type_map = {
-                "AST.Identifier": ASTIdentifier,    
+                "AST.Identifier": ASTIdentifier,
                 "AST.DotAtom": ASTDotAtom,
                 "AST.Function": ASTFunction,
                 "AST.Bool": ASTBool,
@@ -574,13 +575,13 @@ class ArmSpec(object):
             return f"{condition.value}"
 
         elif isinstance(condition, ASTDotAtom):
-            return f"{condition.value}" 
+            return f"{condition.value}"
 
         elif isinstance(condition, ASTSet):
-            if len(condition.values) == 1:  
+            if len(condition.values) == 1:
                 return f"{condition.values[0]['value']}"
             else:
-                values_str = ", ".join([str(value['value']) for value in condition.values])
+                values_str = ", ".join([str(value["value"]) for value in condition.values])
                 return f"[{values_str}]"
 
         elif isinstance(condition, ASTFunction):
@@ -593,9 +594,7 @@ class ArmSpec(object):
         elif isinstance(condition, ASTBinaryOp):
             # Format left and right sides as strings
             left = (
-                str(condition.left.value)
-                if hasattr(condition.left, "value")
-                else self.format_condition(condition.left)
+                str(condition.left.value) if hasattr(condition.left, "value") else self.format_condition(condition.left)
             )
             right = (
                 str(condition.right.value)

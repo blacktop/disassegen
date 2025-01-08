@@ -2,7 +2,8 @@ from typing import Optional
 
 import click
 
-from .spec import ArmSpec
+from .spec import MRSSpec
+from .isa.spec import ISASpec
 
 
 @click.command()
@@ -16,8 +17,10 @@ def main(input_file: str, output: Optional[str]) -> None:
         input_file: Path to the input JSON file
     """
     try:
-        # Parse the input using the spec
-        parsed_result = ArmSpec(input_file)
+        if input_file.endswith(".xml"):
+            parsed_result = ISASpec(input_file)
+        else:
+            parsed_result = MRSSpec(input_file)
 
         if output:
             with open(output, "w") as f:
