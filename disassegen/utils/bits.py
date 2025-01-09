@@ -1,11 +1,12 @@
 # CREDIT: https://github.com/jonpalmisc/workbench/blob/master/bitfield_visualizer/bitviz.py
+
 UNICODE_ARROW = "\u25B2"
 UNICODE_VLINE = "\u2502"
 UNICODE_HLINE = "\u2500"
 UNICODE_JOINT = "\u2518"
 
 
-class Field:
+class Field(object):
     """Singular field inside of a bitfield."""
 
     name: str
@@ -61,41 +62,49 @@ class Bitfield:
             bits = "{n:0{w}b}".format(n=s.extract(value), w=s.width)
             print(f"{s.name:<16}{s.range:<12}{bits}")
 
-    def diagram(self, value: int):
+    def diagram(self, value: int = 4294967295) -> str:
+        """Generate a bitfield diagram as a string."""
         # Must sort so that fields are listed in left-to-right order.
         fields = sorted(self.fields, reverse=True)
 
         max_name_width = max([len(s.name) for s in fields]) + 2
 
+        # Build the diagram line by line
+        lines = []
+
         # Print the bits in each field.
-        print(f"{'':>{max_name_width}}   ", end="")
-        for t in fields:
-            print(t.bits(value) + " ", end="")
-        print("")
+        bits_line = f"{'':>{max_name_width}}   "
+        bits_line += " ".join(t.bits(value) for t in fields)
+        lines.append(bits_line)
 
         # Print the arrow below each field.
-        print(f"{'':>{max_name_width}}   ", end="")
-        for t in fields:
-            print(" " * (t.width - 1) + UNICODE_ARROW + " ", end="")
-        print("")
+        arrow_line = f"{'':>{max_name_width}}   "
+        arrow_line += " ".join(" " * (t.width - 1) + UNICODE_ARROW for t in fields)
+        lines.append(arrow_line)
 
         # Print the lines connecting each label to each field.
         for i, r in enumerate(fields):
-            print(f"{r.name:>{max_name_width}} " + UNICODE_HLINE * 2, end="")
+            # Start with the field name right-aligned
+            connect_line = f"{r.name:>{max_name_width}} " + UNICODE_HLINE * 2
 
             for j, s in enumerate(fields):
                 leading = UNICODE_HLINE * (s.width - 1)
 
                 if j == i:
-                    print(f"{leading}{UNICODE_JOINT} ", end="")
+                    connect_line += f"{leading}{UNICODE_JOINT} "
                 elif j < i:
-                    print(f"{leading}{UNICODE_HLINE * 2}", end="")
+                    connect_line += f"{leading}{UNICODE_HLINE * 2}"
                 else:
-                    print(f"{'':{s.width-1}}{UNICODE_VLINE} ", end="")
+                    connect_line += f"{'':{s.width-1}}{UNICODE_VLINE} "
 
-            print("")
+            lines.append(connect_line)
 
-        print("")
+        # Add an extra newline at the end
+        lines.append("")
+
+        # Join the lines and return as a string
+        return "\n".join(lines)
+
 
 if __name__ == "__main__":
     paciaz = Bitfield(
@@ -109,7 +118,7 @@ if __name__ == "__main__":
     )
 
     print("\n[PACIAZ]")
-    paciaz.diagram(0xD503231F)
+    print(paciaz.diagram(0xD503231F))
 
 # [PACIAZ]
 #               110 101 01000000110010 0011000 11111

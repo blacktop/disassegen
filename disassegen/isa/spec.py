@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Union
+from ..utils.bits import Field, Bitfield
 
 
 @dataclass
@@ -33,63 +34,18 @@ class RegDiagram:
         # Sort boxes by high bit in descending order
         boxes = sorted(self.boxes, key=lambda x: x.high_bit, reverse=True)
 
-        # Find the highest bit for diagram width
-        max_bit = max(box.high_bit for box in boxes)
+        fields = []
+        value = 0
 
-        # Create the diagram lines
-        bit_numbers = ""
-        field_names = ""
-        field_values = ""
-        separator = ""
+        for box in boxes:
+            if box.use_name:
+                fields.append(Field(
+                    f"{box.name} [{box.high_bit}:{box.high_bit - box.width + 1}]" if box.width != 1 else f"{box.name}",
+                    box.high_bit,
+                    box.high_bit - box.width + 1,
+                ))
 
-        current_bit = max_bit
-        while current_bit >= 0:
-            matching_box = None
-            for box in boxes:
-                if box.high_bit >= current_bit and (box.high_bit - box.width + 1) <= current_bit:
-                    matching_box = box
-                    break
-
-            if matching_box:
-                width = matching_box.width
-                # Add bit numbers
-                if width > 1:
-                    bit_numbers += f"{matching_box.high_bit:<{width}}"
-                else:
-                    bit_numbers += str(matching_box.high_bit)
-
-                # Add field names
-                name = matching_box.name if matching_box.name else ""
-                field_names += f"{name:^{width}}"
-
-                # Add field values/constants
-                if matching_box.constants:
-                    const_str = "".join(matching_box.constants)
-                    field_values += f"{const_str:^{width}}"
-                else:
-                    field_values += " " * width
-
-                # Add separators
-                separator += "+" + "-" * (width - 1)
-
-                current_bit -= width
-            else:
-                bit_numbers += " "
-                field_names += " "
-                field_values += " "
-                separator += "+"
-                current_bit -= 1
-
-        # Combine all lines
-        diagram = (
-            "Register Diagram:\n"
-            f"{bit_numbers}\n"
-            f"{separator}+\n"
-            f"{field_names}\n"
-            f"{field_values}\n"
-            f"{separator}+"
-        )
-        return diagram
+        return Bitfield(fields).diagram(value)
 
 
 @dataclass
@@ -185,14 +141,7 @@ class Instruction:
             for encoding in iclass.encodings:
                 output.append(f"\n    * {encoding.mnemonic}: {encoding.assembly_template}")
                 if encoding.reg_diagram:
-                    output.append("\n" + "\n".join(f"      {line}" for line in str(encoding.reg_diagram).split("\n")))
-                    output.append("\n      Bit fields details:")
-                    for box in encoding.reg_diagram.boxes:
-                        if box.name:
-                            output.append(f"        - {box.name} [bit {box.high_bit}, width {box.width}]")
-                            if box.constants:
-                                output.append(f"          Constants: {', '.join(box.constants)}")
-
+                    output.append(f"\n{str(encoding.reg_diagram)}")
             output.append("\n  Pseudocode:")
             for ps in iclass.pseudocode:
                 output.append(f"    Section: {ps.section_type}")
@@ -386,6 +335,6 @@ class ISASpec:
             detailed.append(para.text.strip())
 
         return brief_text, "\n".join(detailed)
-    
+
     def __str__(self) -> str:
         return str(self.instruction)
