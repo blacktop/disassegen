@@ -25,6 +25,7 @@ class RegDiagram:
     form: str
     ps_name: str
     boxes: List[Box]
+    _mask: int = 0
 
     def __str__(self) -> str:
         """Format a register diagram as a visual ASCII representation."""
@@ -35,17 +36,37 @@ class RegDiagram:
         boxes = sorted(self.boxes, key=lambda x: x.high_bit, reverse=True)
 
         fields = []
-        value = 0
 
         for box in boxes:
+            if "_" not in box.constants[0]:
+                # print(
+                #     f"bits: {"".join([x.strip("()") for x in box.constants])}, int: {int(''.join([x.strip("()") for x in box.constants]), 2)}"
+                # )
+                rng = int("".join([x.strip("()") for x in box.constants]), 2)
+                if rng > 0:
+                    self._mask |= rng << (box.high_bit - box.width + 1)
             if box.use_name:
-                fields.append(Field(
-                    f"{box.name} [{box.high_bit}:{box.high_bit - box.width + 1}]" if box.width != 1 else f"{box.name}",
-                    box.high_bit,
-                    box.high_bit - box.width + 1,
-                ))
+                fields.append(
+                    Field(
+                        (
+                            f"{box.name} [{box.high_bit}:{box.high_bit - box.width + 1}]"
+                            if box.width != 1
+                            else f"{box.name}"
+                        ),
+                        box.high_bit,
+                        box.high_bit - box.width + 1,
+                    )
+                )
+            else:
+                fields.append(
+                    Field(
+                        "const",
+                        box.high_bit,
+                        box.high_bit - box.width + 1,
+                    )
+                )
 
-        return Bitfield(fields).diagram(value)
+        return Bitfield(fields).diagram(self._mask)
 
 
 @dataclass
@@ -142,6 +163,8 @@ class Instruction:
                 output.append(f"\n    * {encoding.mnemonic}: {encoding.assembly_template}")
                 if encoding.reg_diagram:
                     output.append(f"\n{str(encoding.reg_diagram)}")
+                    if encoding.reg_diagram._mask:
+                        output.append(f"    Mask: {encoding.reg_diagram._mask:#x}")
             output.append("\n  Pseudocode:")
             for ps in iclass.pseudocode:
                 output.append(f"    Section: {ps.section_type}")
