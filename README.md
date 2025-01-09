@@ -22,16 +22,28 @@ Clone repo
 git clone https://github.com/blacktop/disassegen.git
 ```
 
-Download the SPEC
+Download the Machine Readable SPEC
 
 ```bash
 make aarchmrs
 ```
 
-Run
+Run MRS JSON parser
 
 ```bash
-make run
+make run_mrs
+```
+
+Download the ISA_A64 XML SPEC
+
+```bash
+make isa_a64
+```
+
+Run ISA_A64 XML parser
+
+```bash
+make run_isa
 ```
 
 ## Spec 📖
